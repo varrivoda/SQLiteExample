@@ -1,46 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-    <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="409dp"
-        android:layout_height="fill_parent"
-        android:orientation="vertical">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical">
         <EditText
             android:id="@+id/etTask"
+            android:maxLines="4"
             android:layout_height="wrap_content"
             android:layout_width="match_parent"
             android:hint="Деятельноть">
         </EditText>
-
-        <EditText
-            android:id="@+id/etQuantity"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Quantity">
-        </EditText>
-
         <LinearLayout
-            android:layout_height="wrap_content"
             android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="horizontal">
-
+            <EditText
+                android:id="@+id/etQuantity"
+                android:inputType="number"
+                android:maxLines="1"
+                android:layout_width="wrap_content"
+                android:layout_weight="60"
+                android:layout_height="wrap_content"
+                android:hint="Quantity">
+            </EditText>
+            <EditText
+                android:id="@+id/etDate"
+                android:text="Record date"
+                android:layout_width="wrap_content"
+                android:layout_weight="10"
+                android:layout_height="wrap_content">
+            </EditText>
             <Button
                 android:id="@+id/btnAdd"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Add"></Button>
-
-            <Button
-                android:id="@+id/btnRead"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Read">
-            </Button>
-
-            <Button
-                android:id="@+id/btnClear"
-                android:layout_height="wrap_content"
-                android:layout_width="wrap_content"
-                android:text="Clear">
-            </Button>
         </LinearLayout>
+    <LinearLayout
+        android:layout_height="match_parent"
+        android:layout_width="match_parent">
+        <TextView
+            android:id="@+id/output"
+            android:layout_height="match_parent"
+            android:layout_width="match_parent"
+            android:scrollbars="vertical">
+        </TextView>
     </LinearLayout>
+</LinearLayout>

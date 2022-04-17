@@ -33,6 +33,7 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String KEY_ID = "_id";
     public static final String KEY_TASK = "task";
     public static final String KEY_QUANTITY = "quantity";
+    public static final String TIMESTAMP = "timestamp";
 
 //---3---
 // также в DBHelper нужно реализовать конструктор
@@ -60,7 +61,7 @@ public class DBHelper extends SQLiteOpenHelper {
                 + KEY_ID + " INTEGER PRIMARY KEY, "                 // AUTOINCREMENT NOT NULL ?
                 + KEY_TASK + " TEXT, "
                 + KEY_QUANTITY + " TEXT, "
-                + "sqltime" + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)");
+                + TIMESTAMP + " INTEGER)"); // DEFAULT CURRENT_TIMESTAMP NOT NULL)");
     }
 
     // В методе onUpgrade, который сработает при изменении номера версии БД можно вызвать запрос на уничтожение таблицы
