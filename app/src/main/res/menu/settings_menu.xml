@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:id="@+id/menu_addNewList"
+        android:icon="@drawable/ic_add"
+        android:title="addNewList"
+        app:showAsAction="ifRoom">
+    </item>
+    <item android:id="@+id/menu_viewAll"
+        android:title="View all tables"
+        app:showAsAction="never">
+    </item>
     <item android:id="@+id/menu_clear"
         android:title="Clear DB"
         app:showAsAction="never">

@@ -25,10 +25,15 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.app.DatePickerDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
 import android.content.ContentValues;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.icu.text.DateTimePatternGenerator;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
@@ -36,8 +41,14 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -45,20 +56,29 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 
 //унаследум MainActivity от View.OnClickListener и реализуем метод onClick
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     Button btnAdd, btnRead,btnClear;
-    EditText etTask, etQuantity, etDate;
+    EditText etQuantity, etDate; //, etTask;
     TextView tvOutput;
+    // ADDED:
+    AutoCompleteTextView  etTask;
 // --->>>
 // работу с БД реализуем в MainActivity
 //      объявим перпменную класса DBHelper
 //          созадим его экземпляр в методе onCreate;
 //              в методе onClick() содаем объект SQLiteDatabase
+
+    SharedPreferences sPref;
+
+    String todayValue;
 
     DBHelper dbHelper;
 
@@ -75,7 +95,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
-        etTask = (EditText) findViewById(R.id.etTask);
+        //etTask = (EditText) findViewById(R.id.etTask);
+        // ADDED:
+        etTask = (AutoCompleteTextView) findViewById(R.id.etTask);
+        // ЧТОБЫ ЗАПОЛНИТЬ ВАРИАНТАМИ, НУЖЕН АДАПТОР
+
         etQuantity = (EditText) findViewById(R.id.etQuantity);
         tvOutput = (TextView) findViewById(R.id.output);
         // для прокрутки TextView
@@ -84,7 +108,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //TODO: SINGLE SimpleDateFormat
 
 //        Calendar today = Calendar.getInstance();
-        String todayValue = new SimpleDateFormat("yyyy-MM-dd")
+        todayValue = new SimpleDateFormat("yyyy-MM-dd")
                 .format(new Date().getTime())
                 .substring(0,10);
         etDate = (EditText) findViewById(R.id.etDate);
@@ -92,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         dbHelper = new DBHelper(this);
 
-        this.read();
+        this.read("");
     }
 
 //  реализуем метод onClick, в котором запишем в строки значения текстовых полей
@@ -248,8 +272,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public void read(){
+        this.read(DBHelper.TABLE_ROUTINES);
+    }
+
+    public void read(String tableName){
+
+        //if(sPref.contains("tables"))
+        ArrayList<String> routinesList = new ArrayList<>();
+        tableName = DBHelper.TABLE_ROUTINES;
+
         SQLiteDatabase database = dbHelper.getWritableDatabase();
-        Cursor cursor = database.query(DBHelper.TABLE_ROUTINES, null, null, null,null, null, DBHelper.TIMESTAMP);
+        Cursor cursor = database.query(tableName, null, null, null,null, null, DBHelper.TIMESTAMP);
         //Cursor cursor2 = database.
         // метод query возвращает объект класса Cursor.
         // его можно рассматривать как набюор строк с данными.
@@ -336,6 +369,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 + " - "
                                 + cursor.getString(quantityIndex) + "\n"
                         );
+                if(!routinesList.contains(cursor.getString(taskIndex)))
+                    routinesList.add(cursor.getString(taskIndex));
 
 //* DEPRECATED
 //*                tvOutput.append(
@@ -358,18 +393,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         // Cursor обязательно надощакрывать методом close() для освобождения памяти(?)
         //tvOutput.append(sb.toString());
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_list_item_1, routinesList);
+        etTask.setAdapter(adapter);
+
+
         cursor.close();
     } // *** END READ
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.settings_menu, menu);
-        return true;
+    public String readEverything(String table){
+        StringBuilder sb = new StringBuilder("");
+        ArrayList<String> line = new ArrayList<>();
+        SQLiteDatabase database = dbHelper.getWritableDatabase();
+        Cursor cursor = database.rawQuery("SELECT * FROM " + table, null);
+        if(cursor.moveToFirst()) {
+            ArrayList<String> columns = new ArrayList<String>(
+                    Arrays.asList(cursor.getColumnNames()));
+
+            for(String colunm: columns)
+                sb.append("|" + colunm);
+
+            sb.append("\n");
+
+            do{
+                for(String column: columns)
+                    sb.append("|" + cursor.getString(cursor.getColumnIndexOrThrow(column)));
+
+                sb.append("\n");
+
+            }while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return sb.toString();
     }
-//      СЮДА ПЕРЕНЕСЕМДЕЙСТВИЯ ПО ОЧИСТКЕ ТАБЛИЦЫ
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+
+    public void clearCurrentTable(){
         AlertDialog alert = new AlertDialog.Builder(this)
                 .setTitle("Clear database?")
                 .setMessage("It will erase all data")
@@ -385,6 +445,122 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 .setNegativeButton("NO", null)
                 .create();
         alert.show();
+    }
+
+    public ArrayList<String> allTablesList(){
+        ArrayList<String> allTablesList = new ArrayList<>();
+        allTablesList.add("TestLine \n");
+        SQLiteDatabase database = dbHelper.getWritableDatabase();
+        Cursor cursor =  database.rawQuery("SELECT * FROM sqlite_master WHERE type='table'", null);
+
+        while(cursor.moveToNext()){
+            allTablesList.add(cursor.getString(1)+"\n");
+        }
+
+        cursor.close();
+        return allTablesList;
+    }
+
+    //Calendar dialogDate = Calendar.getInstance();
+
+
+
+    DatePickerDialog.OnDateSetListener d = new DatePickerDialog.OnDateSetListener() {
+        @Override
+        public void onDateSet(DatePicker datePicker, int year, int month, int dayOfMonth) {
+            etDate.setText(year+"-"+month+"-"+dayOfMonth);
+        }
+    };
+
+    public void setDate(View v){
+        new DatePickerDialog(MainActivity.this, d,
+                Integer.valueOf(todayValue.substring(0,4)),
+                Integer.valueOf(todayValue.substring(5,7)),
+                Integer.valueOf(todayValue.substring(8,10)))
+                .show();
+
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.settings_menu, menu);
+        return true;
+    }
+//      СЮДА ПЕРЕНЕСЕМДЕЙСТВИЯ ПО ОЧИСТКЕ ТАБЛИЦЫ
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        // CLEAR TABLE
+        if(item.getItemId()==R.id.menu_clear){
+            this.clearCurrentTable();
+        }
+
+        // СПИСОК ТАБЛИЦ
+        if(item.getItemId()==R.id.menu_viewAll){
+            Dialog dlgViewAll = new Dialog(this, R.style.Dialog);
+            dlgViewAll.setTitle("Please select table");
+            dlgViewAll.setContentView(R.layout.layout_view_all);
+
+
+            ListView lvAllTablesList;
+            lvAllTablesList = (ListView) dlgViewAll.findViewById(R.id.lvAllTablesList);
+
+
+            /*ArrayList<String> allTablesList = new ArrayList<>();
+            allTablesList.add("TestLine \n");
+            SQLiteDatabase database = dbHelper.getWritableDatabase();
+            Cursor cursor =  database.rawQuery("SELECT * FROM sqlite_master WHERE type='table'", null);
+
+            while(cursor.moveToNext()){
+                tvAllTablesList.append(cursor.getString(1)+"\n");
+            }
+
+            cursor.close();*/
+            //new ArrayAdapter()
+
+            ArrayAdapter<String> adapter = new ArrayAdapter(
+                    this, R.layout.support_simple_spinner_dropdown_item,// android.R.layout.simple_spinner_dropdown_item,
+                    allTablesList());
+            //adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+            lvAllTablesList.setAdapter(adapter);
+
+            lvAllTablesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id)                {
+                    //Toast.makeText(adapter.getContext(), String.valueOf(position) ,Toast.LENGTH_SHORT).show();
+                    tvOutput.setText(readEverything(allTablesList().get(position)));
+                }
+            });
+
+
+            Button btnChangeTable = dlgViewAll.findViewById(R.id.btnChahgeTable);
+            btnChangeTable.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dlgViewAll.dismiss();
+                }
+            });
+
+            dlgViewAll.show();
+        }
+
+        if(item.getItemId()==R.id.menu_addNewList){
+            AlertDialog newListDialog = new AlertDialog.Builder(this)
+                    .setTitle("Create new list")
+                    .setMessage("New list will be marke for current date")
+                    .setPositiveButton("YES, FOR TODAY", new DialogInterface.OnClickListener(){
+                        @Override
+                        public void onClick(DialogInterface dialog, int which){
+                            SQLiteDatabase database = dbHelper.getWritableDatabase();
+                            dbHelper.newList(database, "t"+todayValue.replace("-","_"));//(DBHelper.TABLE_ROUTINES, null, null);
+                            Toast.makeText(MainActivity.this,"Table" + todayValue +" created",Toast.LENGTH_SHORT).show();
+                            MainActivity.this.read();
+                        }
+                    })
+                    .setNegativeButton("NO", null)
+                    .create();
+            newListDialog.show();
+        }
         return super.onOptionsItemSelected(item);
     }
 }

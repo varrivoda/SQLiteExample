@@ -25,7 +25,7 @@ public class DBHelper extends SQLiteOpenHelper {
     //      имени таблицы
     public static final int DATABASE_VERSION = 1;
     public static final String DATABASE_NAME = "routinesDb";
-    public static final String TABLE_ROUTINES = "routines";
+    public static String TABLE_ROUTINES = "routines";
 
     // добавим также константы для заголовков столбцов
     // при этом идентификатор _id должен обязательно начинаться с нижнего подчеркивания
@@ -72,6 +72,12 @@ public class DBHelper extends SQLiteOpenHelper {
 
         onCreate(db);
     }
+
+    public void newList(SQLiteDatabase db, String newListName){
+        this.TABLE_ROUTINES = newListName;
+        this.onCreate(db);
+    }
+
     // еще момент - в данном классе принято объявлять открытые строковые константы для названия
     // таблиц и полей БД, чтобы их можно было использовать в других классах для определения
     // названия таблиц и полей. Поэтому справим модификаторы констант на public
